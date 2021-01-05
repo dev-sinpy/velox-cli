@@ -1,0 +1,15 @@
+[package]
+name = "velox"
+version = "0.1.0"
+authors = ["dev-sinpy <tdevyanshu9@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = {version = "2.33.3", features = ["yaml"]}
+fs_extra = "1.2.0"
+confy = "0.4.0"
+serde = { version = "1.0", features = ["derive"] }
+custom_error = "1.8.0"
+dialoguer = "0.7.1"

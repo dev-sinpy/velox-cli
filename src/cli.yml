@@ -1,0 +1,30 @@
+name: velox
+version: "0.1.0"
+author: Dev -S. <dev.sinpy@gmail.com>
+about: Intro
+
+subcommands:
+  - new:
+      about: Create a new velox project
+      args:
+        - name:
+            help: name of your project
+            required: true
+
+  - init:
+      about: Initialise a velox project in current directory
+
+  - run:
+      about: Run a binary of your project
+      args: 
+        - release:
+            help: run a binary of velox project in release mode
+            long: release
+
+  - build:
+      about: build a binary of your project
+      args:
+        - release:
+            help: build binary in release mode
+            long: release
+            requires: run
