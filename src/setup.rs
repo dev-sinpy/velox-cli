@@ -1,7 +1,7 @@
 use crate::subprocess;
 use crate::VeloxError;
 
-use dialoguer::console::Style;
+use dialoguer::console::{style, Style};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::path::Path;
 use std::process::Stdio;
@@ -31,7 +31,7 @@ impl PackageManager {
         }
     }
 
-    pub fn install_dependencies(&self, project_path: &Path) {
+    pub fn install_dependencies(&self, project_path: &Path) -> Result<(), VeloxError> {
         let command = match self {
             PackageManager::Npm => format!("cd {};npm install", project_path.to_str().unwrap()),
             PackageManager::Yarn => format!("cd {};yarn", project_path.to_str().unwrap()),
@@ -41,7 +41,14 @@ impl PackageManager {
         match process.try_wait() {
             Ok(Some(status)) => {
                 if !status.success() {
-                    panic!("Failed to install dependencies, please try again later.");
+                    Err(VeloxError::InstallationError {
+                        detail: format!(
+                            "{}Failed to install dependencies, please try again later or install them manually.",
+                            style("Error: ").red().bold()
+                        ),
+                    })
+                } else {
+                    Ok(())
                 }
             }
             Ok(None) => {
@@ -49,13 +56,25 @@ impl PackageManager {
                 match process.wait() {
                     Ok(status) => {
                         if !status.success() {
-                            panic!("Failed to install dependencies, please try again later.");
+                            Err(VeloxError::InstallationError {
+                                detail: String::from(
+                                    "Failed to install dependencies, please try again later or install them manually."
+                                ),
+                            })
+                        } else {
+                            Ok(())
                         }
                     }
-                    Err(_err) => panic!("Failed to install dependencies, please try again later."),
+                    Err(_err) => Err(VeloxError::InstallationError {
+                        detail: String::from(
+                            "Failed to install dependencies, please try again later or install them manually."
+                        ),
+                    }),
                 }
             }
-            Err(_e) => panic!("Failed to install dependencies, please try again later."),
+            Err(err) => Err(VeloxError::SubProcessError {
+                detail: err.to_string(),
+            }),
         }
     }
 }
@@ -84,14 +103,25 @@ pub fn begin_setup(project_name: &str) -> Result<SetupConfig, VeloxError> {
         values_style: Style::new().yellow().dim(),
         ..ColorfulTheme::default()
     };
-    println!("Create a new velox project");
+    print!("\x1B[2J\x1B[1;1H");
+    println!(
+        "{:4}{}",
+        "",
+        style("Create a new velox project.\n").green().bold(),
+    );
 
-    if Confirm::with_theme(&theme)
-        .with_prompt("Do you want to use default config?")
-        .interact()?
-    {
-        return Ok(SetupConfig::default());
-    }
+    // if Confirm::with_theme(&theme)
+    //     .with_prompt("Do you want to use default config?")
+    //     .interact()?
+    // {
+    //     println!(
+    //         "{:4}{:} ({})",
+    //         "\n",
+    //         style("Successfully created new project").green(),
+    //         style(project_name).cyan().bold()
+    //     );
+    //     return Ok(SetupConfig::default());
+    // }
 
     let title = Input::with_theme(&theme)
         .with_prompt("App title")
@@ -104,7 +134,7 @@ pub fn begin_setup(project_name: &str) -> Result<SetupConfig, VeloxError> {
         .interact()?;
 
     let package_manager = match Select::with_theme(&theme)
-        .with_prompt("Installed package manager?")
+        .with_prompt("Select package manager")
         .default(0)
         .item("Npm")
         .item("Yarn")
@@ -119,6 +149,13 @@ pub fn begin_setup(project_name: &str) -> Result<SetupConfig, VeloxError> {
         .with_prompt("Do you want to install dependencies now?")
         .default(true)
         .interact()?;
+
+    println!(
+        "{:4}{:} ({})",
+        "\n",
+        style("Successfully created new project").green(),
+        style(project_name).cyan().bold()
+    );
 
     Ok(SetupConfig {
         title,

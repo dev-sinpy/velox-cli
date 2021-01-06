@@ -12,6 +12,8 @@ use std::process::Stdio;
 use custom_error::custom_error;
 
 custom_error! {pub VeloxError
+    InstallationError{detail: String} = "{detail}",
+    SetupError{detail: String} = "{detail}",
     DependencyError{detail: String} = "{detail}",
     SubProcessError{detail: String} = "{detail}",
     IoError{source: std::io::Error} = "{source}",
@@ -62,20 +64,24 @@ pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
             if setup_config.install_dependencies {
                 // check if npm or yarn is installed in system
                 if !setup_config.package_manager.check_if_installed() {
-                    panic!("Package manager is not Installed.");
+                    Err(VeloxError::DependencyError {
+                        detail: String::from("Package manager is not Installed."),
+                    })
                 } else {
                     // install js dependencies
                     setup_config
                         .package_manager
-                        .install_dependencies(Path::new(&project_path.join("web/")));
+                        .install_dependencies(Path::new(&project_path.join("web/")))?;
+                    Ok(())
                 }
             } else {
-                println!("setup finished!");
+                Ok(())
             }
         }
-        Err(err) => panic!("{:?}", err),
-    };
-    Ok(())
+        Err(err) => Err(VeloxError::SetupError {
+            detail: err.to_string(),
+        }),
+    }
 }
 
 // Run project in debug or release mode.
