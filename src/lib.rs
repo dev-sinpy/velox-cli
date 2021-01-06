@@ -1,8 +1,8 @@
 mod config;
-mod server;
 mod setup;
 mod subprocess;
 
+use confy::ConfyError;
 use std::env::current_dir;
 use std::fs;
 use std::io::Write;
@@ -12,6 +12,7 @@ use std::process::Stdio;
 use custom_error::custom_error;
 
 custom_error! {pub VeloxError
+    ConfigError{source: ConfyError} = "{source}",
     InstallationError{detail: String} = "{detail}",
     SetupError{detail: String} = "{detail}",
     DependencyError{detail: String} = "{detail}",
@@ -85,15 +86,36 @@ pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
 }
 
 // Run project in debug or release mode.
-pub fn run(release: bool) {
-    let mut snowpack_process = server::start_dev_server();
-    let arg = if release {
+pub fn run(release: bool) -> Result<(), VeloxError> {
+    let snowpack_command = match config::load_config()?.package_manager.as_str() {
+        "npm" => "npx dev",
+        "yarn" => "yarn run dev",
+        _ => {
+            return Err(VeloxError::SubProcessError {
+                detail: "Invalid velox config".to_string(),
+            })
+        }
+    };
+    let mut snowpack_process =
+        subprocess::exec(snowpack_command, "web/", Stdio::inherit(), Stdio::inherit());
+    let cargo_command = if release {
         "cargo-watch -s 'cargo run --release'"
     } else {
         "cargo-watch -s 'cargo run'"
     };
-    let mut cargo_process = subprocess::exec(arg, Stdio::inherit(), Stdio::inherit());
+    let mut cargo_process =
+        subprocess::exec(cargo_command, ".", Stdio::inherit(), Stdio::inherit());
 
-    snowpack_process.wait().unwrap();
-    cargo_process.wait().unwrap();
+    if let Err(err) = snowpack_process.wait() {
+        return Err(VeloxError::SubProcessError {
+            detail: err.to_string(),
+        });
+    };
+    if let Err(err) = cargo_process.wait() {
+        return Err(VeloxError::SubProcessError {
+            detail: err.to_string(),
+        });
+    };
+
+    Ok(())
 }

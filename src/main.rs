@@ -12,9 +12,11 @@ fn main() {
         }
         ("run", Some(sub_m)) => {
             if sub_m.is_present("release") {
-                velox::run(true)
-            } else {
-                velox::run(false);
+                if let Err(err) = velox::run(true) {
+                    panic!("{}{}", style("Error: ").red().bold(), err.to_string())
+                }
+            } else if let Err(err) = velox::run(false) {
+                panic!("{}{}", style("Error: ").red().bold(), err.to_string())
             }
         } // push was used
         ("build", Some(sub_m)) => {} // commit was used

@@ -19,7 +19,7 @@ impl PackageManager {
             PackageManager::Yarn => "yarn --version",
         };
 
-        let mut process = subprocess::exec(command, Stdio::null(), Stdio::null());
+        let mut process = subprocess::exec(command, ".", Stdio::null(), Stdio::null());
         match process.try_wait() {
             Ok(Some(status)) => status.success(),
             Ok(None) => {
@@ -33,11 +33,12 @@ impl PackageManager {
 
     pub fn install_dependencies(&self, project_path: &Path) -> Result<(), VeloxError> {
         let command = match self {
-            PackageManager::Npm => format!("cd {};npm install", project_path.to_str().unwrap()),
-            PackageManager::Yarn => format!("cd {};yarn", project_path.to_str().unwrap()),
+            PackageManager::Npm => "npm install".to_string(),
+            PackageManager::Yarn => "yarn".to_string(),
         };
 
-        let mut process = subprocess::exec(&command, Stdio::inherit(), Stdio::inherit());
+        let mut process =
+            subprocess::exec(&command, project_path, Stdio::inherit(), Stdio::inherit());
         match process.try_wait() {
             Ok(Some(status)) => {
                 if !status.success() {
@@ -109,19 +110,6 @@ pub fn begin_setup(project_name: &str) -> Result<SetupConfig, VeloxError> {
         "",
         style("Create a new velox project.\n").green().bold(),
     );
-
-    // if Confirm::with_theme(&theme)
-    //     .with_prompt("Do you want to use default config?")
-    //     .interact()?
-    // {
-    //     println!(
-    //         "{:4}{:} ({})",
-    //         "\n",
-    //         style("Successfully created new project").green(),
-    //         style(project_name).cyan().bold()
-    //     );
-    //     return Ok(SetupConfig::default());
-    // }
 
     let title = Input::with_theme(&theme)
         .with_prompt("App title")
