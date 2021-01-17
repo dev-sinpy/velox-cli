@@ -1,6 +1,7 @@
 mod config;
 mod setup;
 mod subprocess;
+mod template;
 
 use confy::ConfyError;
 use std::env::current_dir;
@@ -18,27 +19,16 @@ custom_error! {pub VeloxError
     DependencyError{detail: String} = "{detail}",
     SubProcessError{detail: String} = "{detail}",
     IoError{source: std::io::Error} = "{source}",
-    FileSystemError{source: fs_extra::error::Error} = "{source}",
     ServerError{detail: String} = "{detail}",
 }
 
 /// Creates a new velox project.
 pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
-    use fs_extra::dir::{copy, CopyOptions};
-
     let current_dir = current_dir()?;
     let project_path = current_dir.join(name);
 
-    // copy template to form a new project
-    let template_path = Path::new("../velox-template"); // Todo: pull this dir from github
-    if template_path.exists() {
-        let mut options = CopyOptions::new();
-        options.copy_inside = true;
-        copy(template_path, &project_path, &options)?;
-    } else {
-        // Todo: return more detailed error
-        panic!("template does not exist");
-    }
+    // Create a new template folder with project name
+    template::create_template(&project_path)?;
 
     // edit fields in Cargo.toml file with user preferences
     let file_content = fs::read_to_string(&project_path.join("Cargo.toml"))?;
