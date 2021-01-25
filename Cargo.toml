@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-velox_bundler = {path = "../velox-bundler"}
+velox_bundler = {git = "https://github.com/dev-sinpy/velox-bundler.git", branch = "main"}
 clap = {version = "2.33.3", features = ["yaml"]}
 include_dir = "0.6.0"
 serde = { version = "1.0", features = ["derive"] }

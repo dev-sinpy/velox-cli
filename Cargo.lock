@@ -1327,6 +1327,7 @@ dependencies = [
 [[package]]
 name = "velox_bundler"
 version = "0.1.0"
+source = "git+https://github.com/dev-sinpy/velox-bundler.git?branch=main#a8af495ec2560730fdb55a8bcb40e82f9b0d593d"
 dependencies = [
  "ar",
  "cab",
