@@ -18,7 +18,7 @@ jobs:
       - name: Install nightly
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: stable
+            toolchain: nightly
             target: i686-pc-windows-msvc
             override: true
             components: rustfmt, clippy
@@ -27,12 +27,16 @@ jobs:
       # as it is set as an "override" for current directory
 
       - name: Build project
-        run: cargo build --target i686-pc-windows-msvc --release --verbose
+        run: cargo +nightly build --out-dir ./dist/ --target i686-pc-windows-msvc --release --verbose -Z unstable-options
+
+      - name: list directories
+        run: dir ./dist
+
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./target/release/velox.exe
+          file: ./dist/velox.exe
           asset_name: velox-cli
           tag: ${{ github.ref }}
           overwrite: true
