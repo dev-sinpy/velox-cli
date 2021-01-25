@@ -8,7 +8,7 @@
     "permissions": [
         "filesystem",
         "notification",
-        "process"
+        "subprocess"
     ],
 
     "dev_server_url": "http://localhost:8888",
