@@ -1,0 +1,20 @@
+{
+    "title": "{{app_title}}",
+
+    "description": "{{app_description}}",
+
+    "debug": true,
+
+    "permissions": [
+        "filesystem",
+        "notification",
+        "process"
+    ],
+
+    "dev_server_url": "http://localhost:8888",
+
+    "package_manager": "{{package_manager}}",
+
+    "build_dir": "web/dist"
+
+}

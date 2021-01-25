@@ -2,25 +2,25 @@
 // For reference please visit: https://www.snowpack.dev/reference/configuration
 
 module.exports = {
-    plugins: [
+    mount: {
         /* ... */
-    ],
-    installOptions: {
-        /* ... */
+    },
+    plugins: [],
+    packageOptions: {
+        source: "local"
     },
     devOptions: {
         // DO NOT CHANGE THESE!
-        port: 8889,
+        port: 8888,
         open: "none",
         output: "stream",
     },
     buildOptions: {
-        /* ... */
+        out: "dist"
     },
-    mount: {
-        /* ... */
-    },
-    alias: {
-        /* ... */
-    },
+    optimize: {
+        "bundle": true,
+        "minify": true,
+        "target": 'es2018'
+    }
 };

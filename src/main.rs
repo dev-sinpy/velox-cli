@@ -10,16 +10,16 @@ fn main() {
                 panic!("{}{}", style("Error: ").red().bold(), err.to_string())
             }
         }
-        ("run", Some(sub_m)) => {
-            if sub_m.is_present("release") {
-                if let Err(err) = velox::run(true) {
-                    panic!("{}{}", style("Error: ").red().bold(), err.to_string())
-                }
-            } else if let Err(err) = velox::run(false) {
+        ("dev", Some(sub_m)) => {
+            if let Err(err) = velox::run() {
                 panic!("{}{}", style("Error: ").red().bold(), err.to_string())
             }
-        } // push was used
-        ("build", Some(sub_m)) => {} // commit was used
+        }
+        ("build", Some(sub_m)) => {
+            if let Err(err) = velox::build() {
+                panic!("{}{}", style("Error: ").red().bold(), err.to_string())
+            }
+        }
         _ => {}
     };
 }

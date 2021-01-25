@@ -3,20 +3,21 @@ mod setup;
 mod subprocess;
 mod template;
 
-use confy::ConfyError;
+// use confy::ConfyError;
 use std::env::current_dir;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
-use std::process::Stdio;
+use std::process::{self, Stdio};
 
 use custom_error::custom_error;
 
 custom_error! {pub VeloxError
-    ConfigError{source: ConfyError} = "{source}",
+    // ConfigError{source: ConfyError} = "{source}",
     InstallationError{detail: String} = "{detail}",
     SetupError{detail: String} = "{detail}",
     DependencyError{detail: String} = "{detail}",
+    JSONError{source: serde_json::error::Error} = "{source}",
     SubProcessError{detail: String} = "{detail}",
     IoError{source: std::io::Error} = "{source}",
     ServerError{detail: String} = "{detail}",
@@ -47,7 +48,7 @@ pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
         Ok(setup_config) => {
             // set velox-config file with user data
             config::set_config(
-                Path::new(&project_path.join("velox-config.toml")),
+                Path::new(&project_path.join("velox-config.json")),
                 &setup_config,
             )?;
 
@@ -76,7 +77,7 @@ pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
 }
 
 // Run project in debug or release mode.
-pub fn run(release: bool) -> Result<(), VeloxError> {
+pub fn run() -> Result<(), VeloxError> {
     let snowpack_command = match config::load_config()?.package_manager.as_str() {
         "npm" => "npx dev",
         "yarn" => "yarn run dev",
@@ -88,11 +89,7 @@ pub fn run(release: bool) -> Result<(), VeloxError> {
     };
     let mut snowpack_process =
         subprocess::exec(snowpack_command, "web/", Stdio::inherit(), Stdio::inherit());
-    let cargo_command = if release {
-        "cargo-watch -s 'cargo run --release'"
-    } else {
-        "cargo-watch -s 'cargo run'"
-    };
+    let cargo_command = "cargo-watch -s 'cargo run debug'";
     let mut cargo_process =
         subprocess::exec(cargo_command, ".", Stdio::inherit(), Stdio::inherit());
 
@@ -107,5 +104,42 @@ pub fn run(release: bool) -> Result<(), VeloxError> {
         });
     };
 
+    Ok(())
+}
+
+pub fn build() -> Result<(), VeloxError> {
+    let config = config::load_config()?;
+    let snowpack_command = match config.package_manager.as_str() {
+        "npm" => "npx build",
+        "yarn" => "yarn run build",
+        _ => {
+            return Err(VeloxError::SubProcessError {
+                detail: "Invalid velox config".to_string(),
+            })
+        }
+    };
+    let snowpack_process = if cfg!(target_os = "windows") {
+        process::Command::new("cmd")
+            .current_dir("web/")
+            .args(&["/C", snowpack_command])
+            .status()?
+    } else {
+        process::Command::new("sh")
+            .current_dir("web/")
+            .args(&["-c", snowpack_command])
+            .status()?
+    };
+
+    if !snowpack_process.success() {
+        panic!("BundlerError: Failed to build assets.");
+    } else {
+        velox_bundler::bundle_binary().unwrap();
+        run_cleanup(config.build_dir)?;
+    }
+    Ok(())
+}
+
+fn run_cleanup<T: std::convert::AsRef<std::path::Path>>(path: T) -> Result<(), VeloxError> {
+    fs::remove_dir_all(path)?;
     Ok(())
 }

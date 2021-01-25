@@ -1,9 +1,10 @@
 use crate::setup::{PackageManager, SetupConfig};
 use crate::VeloxError;
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::path::Path;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct VeloxConfig {
     ///title of the app
     pub title: String,
@@ -12,23 +13,31 @@ pub struct VeloxConfig {
     pub permissions: Vec<String>,
     pub dev_server_url: String,
     pub package_manager: String,
+    pub build_dir: String,
 }
 
-impl ::std::default::Default for VeloxConfig {
+impl std::default::Default for VeloxConfig {
     fn default() -> Self {
         Self {
-            title: String::from("None"),
-            description: String::from("None"),
+            title: String::from(""),
+            description: String::from(""),
             debug: true,
             permissions: vec![],
-            dev_server_url: String::from("http://localhost:8889"),
+            dev_server_url: String::from("http://localhost:8888"),
             package_manager: String::from("npm"),
+            build_dir: String::from("web/dist/"),
         }
     }
 }
 
+pub fn load_config() -> Result<VeloxConfig, VeloxError> {
+    let config = fs::read_to_string("velox-config.json")?;
+    let config_json: VeloxConfig = serde_json::from_str(&config)?;
+
+    Ok(config_json)
+}
+
 pub fn set_config(config_path: &Path, config: &SetupConfig) -> Result<(), VeloxError> {
-    use std::fs;
     use std::io::Write;
 
     let file_content = fs::read_to_string(config_path).unwrap();
@@ -49,9 +58,4 @@ pub fn set_config(config_path: &Path, config: &SetupConfig) -> Result<(), VeloxE
 
     file.write_all(updated_content.as_bytes())?;
     Ok(())
-}
-
-pub fn load_config() -> Result<VeloxConfig, VeloxError> {
-    let config: VeloxConfig = confy::load_path("velox-config.toml")?;
-    Ok(config)
 }
