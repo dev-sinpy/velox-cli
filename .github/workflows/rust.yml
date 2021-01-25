@@ -37,7 +37,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./dist/velox.exe
-          asset_name: velox-cli
+          asset_name: velox-cli.exe
           tag: ${{ github.ref }}
           overwrite: true
           body: "CLI tool for velox"
