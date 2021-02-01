@@ -7,7 +7,7 @@ mod template;
 use std::env::current_dir;
 use std::fs;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{self, Stdio};
 
 use custom_error::custom_error;
@@ -133,13 +133,44 @@ pub fn build() -> Result<(), VeloxError> {
     if !snowpack_process.success() {
         panic!("BundlerError: Failed to build assets.");
     } else {
-        velox_bundler::bundle_binary().unwrap();
+        // if cfg!(target_os = "windows") {
+        if true {
+            let script = include_str!("../scripts/create_msi.py");
+            {
+                let mut file = fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open("./create_msi.py")?;
+
+                file.write_all(script.as_bytes())?;
+            }
+            let command = "python3 create_msi.py velox-config.json";
+            let bunding_process = if cfg!(target_os = "windows") {
+                process::Command::new("cmd")
+                    .args(&["/C", command])
+                    .status()?
+            } else {
+                process::Command::new("sh")
+                    .args(&["-c", command])
+                    .status()?
+            };
+            if !bunding_process.success() {
+                run_cleanup("./create_msi.py")?;
+                run_cleanup(config.build_dir)?;
+                panic!("BundlerError: Failed to build installer.");
+            }
+        }
+        // velox_bundler::bundle_binary().unwrap();
         run_cleanup(config.build_dir)?;
     }
     Ok(())
 }
 
 fn run_cleanup<T: std::convert::AsRef<std::path::Path>>(path: T) -> Result<(), VeloxError> {
-    fs::remove_dir_all(path)?;
+    if path.as_ref().is_dir() {
+        fs::remove_dir_all(path)?;
+    } else {
+        fs::remove_file(path)?;
+    }
     Ok(())
 }
