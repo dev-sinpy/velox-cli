@@ -133,8 +133,8 @@ pub fn build() -> Result<(), VeloxError> {
     if !snowpack_process.success() {
         panic!("BundlerError: Failed to build assets.");
     } else {
-        // if cfg!(target_os = "windows") {
-        if true {
+        if cfg!(target_os = "windows") {
+        // if true {
             let script = include_str!("../scripts/create_msi.py");
             {
                 let mut file = fs::OpenOptions::new()
@@ -144,7 +144,7 @@ pub fn build() -> Result<(), VeloxError> {
 
                 file.write_all(script.as_bytes())?;
             }
-            let command = "python3 create_msi.py velox-config.json";
+            let command = "python3 create_msi.py velox.conf.json";
             let bunding_process = if cfg!(target_os = "windows") {
                 process::Command::new("cmd")
                     .args(&["/C", command])
@@ -159,8 +159,10 @@ pub fn build() -> Result<(), VeloxError> {
                 run_cleanup(config.build_dir)?;
                 panic!("BundlerError: Failed to build installer.");
             }
+        } else {
+        velox_bundler::bundle_binary().unwrap();
+
         }
-        // velox_bundler::bundle_binary().unwrap();
         run_cleanup(config.build_dir)?;
     }
     Ok(())

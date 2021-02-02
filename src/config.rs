@@ -7,7 +7,7 @@ use std::path::Path;
 #[derive(Serialize, Deserialize)]
 pub struct VeloxConfig {
     ///title of the app
-    pub title: String,
+    pub name: String,
     pub description: String,
     pub debug: bool,
     pub permissions: Vec<String>,
@@ -19,7 +19,7 @@ pub struct VeloxConfig {
 impl std::default::Default for VeloxConfig {
     fn default() -> Self {
         Self {
-            title: String::from(""),
+            name: String::from(""),
             description: String::from(""),
             debug: true,
             permissions: vec![],
@@ -31,7 +31,7 @@ impl std::default::Default for VeloxConfig {
 }
 
 pub fn load_config() -> Result<VeloxConfig, VeloxError> {
-    let config = fs::read_to_string("velox-config.json")?;
+    let config = fs::read_to_string("velox.conf.json")?;
     let config_json: VeloxConfig = serde_json::from_str(&config)?;
 
     Ok(config_json)
