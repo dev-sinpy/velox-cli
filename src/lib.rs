@@ -79,7 +79,7 @@ pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
 // Run project in debug or release mode.
 pub fn run() -> Result<(), VeloxError> {
     let snowpack_command = match config::load_config()?.package_manager.as_str() {
-        "npm" => "npx dev",
+        "npm" => "npm run dev",
         "yarn" => "yarn run dev",
         _ => {
             return Err(VeloxError::SubProcessError {
@@ -110,7 +110,7 @@ pub fn run() -> Result<(), VeloxError> {
 pub fn build() -> Result<(), VeloxError> {
     let config = config::load_config()?;
     let snowpack_command = match config.package_manager.as_str() {
-        "npm" => "npx build",
+        "npm" => "npm run build",
         "yarn" => "yarn run build",
         _ => {
             return Err(VeloxError::SubProcessError {
