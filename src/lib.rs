@@ -89,7 +89,7 @@ pub fn run() -> Result<(), VeloxError> {
     };
     let mut snowpack_process =
         subprocess::exec(snowpack_command, "web/", Stdio::inherit(), Stdio::inherit());
-    let cargo_command = "cargo-watch -s 'cargo run debug'";
+    let cargo_command = "cargo-watch -x run";
     let mut cargo_process =
         subprocess::exec(cargo_command, ".", Stdio::inherit(), Stdio::inherit());
 
@@ -97,7 +97,7 @@ pub fn run() -> Result<(), VeloxError> {
         return Err(VeloxError::SubProcessError {
             detail: err.to_string(),
         });
-    };
+    }
     if let Err(err) = cargo_process.wait() {
         return Err(VeloxError::SubProcessError {
             detail: err.to_string(),
@@ -132,39 +132,61 @@ pub fn build() -> Result<(), VeloxError> {
 
     if !snowpack_process.success() {
         panic!("BundlerError: Failed to build assets.");
-    } else {
-        if cfg!(target_os = "windows") {
-        // if true {
-            let script = include_str!("../scripts/create_msi.py");
-            {
-                let mut file = fs::OpenOptions::new()
-                    .write(true)
-                    .create_new(true)
-                    .open("./create_msi.py")?;
-
-                file.write_all(script.as_bytes())?;
-            }
-            let command = "python3 create_msi.py velox.conf.json";
-            let bunding_process = if cfg!(target_os = "windows") {
-                process::Command::new("cmd")
-                    .args(&["/C", command])
-                    .status()?
-            } else {
-                process::Command::new("sh")
-                    .args(&["-c", command])
-                    .status()?
-            };
-            if !bunding_process.success() {
-                run_cleanup("./create_msi.py")?;
-                run_cleanup(config.build_dir)?;
-                panic!("BundlerError: Failed to build installer.");
-            }
-        } else {
-        velox_bundler::bundle_binary().unwrap();
-
-        }
-        run_cleanup(config.build_dir)?;
     }
+
+    let cargo_process = if cfg!(target_os = "windows") {
+    process::Command::new("cmd")
+        .args(&["/C", "cargo build --release"])
+        .status()?
+    } else {
+        process::Command::new("sh")
+            .args(&["-c", "cargo build --release"])
+            .status()?
+    };
+
+    if !cargo_process.success() {
+        run_cleanup(&config.build_dir)?;
+        panic!("BundlerError: Failed to build binary.");
+    } else {
+        move_artifacts(&config).unwrap();
+        bundle_binary(&config).unwrap();
+    }
+
+    Ok(())
+}
+
+fn bundle_binary(config: &config::VeloxConfig) -> Result<(), VeloxError> {
+    if cfg!(target_os = "windows") {
+    // if true {
+        let script = include_str!("../scripts/create_msi.py");
+        {
+            let mut file = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open("./create_msi.py")?;
+
+            file.write_all(script.as_bytes())?;
+        }
+        let command = "python create_msi.py velox.conf.json";
+        let bunding_process = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .args(&["/C", command])
+                .status()?
+        } else {
+            process::Command::new("sh")
+                .args(&["-c", command])
+                .status()?
+        };
+        if !bunding_process.success() {
+            run_cleanup("./create_msi.py")?;
+            run_cleanup(&config.build_dir)?;
+            panic!("BundlerError: Failed to build installer.");
+        }
+    } else {
+        velox_bundler::bundle_binary().unwrap();
+    }
+    run_cleanup("./create_msi.py")?;
+    run_cleanup(&config.build_dir)?;
     Ok(())
 }
 
@@ -173,6 +195,41 @@ fn run_cleanup<T: std::convert::AsRef<std::path::Path>>(path: T) -> Result<(), V
         fs::remove_dir_all(path)?;
     } else {
         fs::remove_file(path)?;
+    }
+    Ok(())
+}
+
+
+fn move_artifacts(config: &config::VeloxConfig) -> Result<(), VeloxError> {
+    println!("moving artifacts");
+    fs::rename(format!("./target/release/{}.exe", config.name), format!("./dist/{}.exe", config.name))?;
+    if cfg!(target_arch = "x86") {
+        let dll = include_bytes!("../dll/x86/WebView2Loader.dll");
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open("./dist/WebView2Loader.dll")?;
+        file.write_all(dll)?;
+
+
+    } else if cfg!(target_arch = "x86_64") {
+        let dll = include_bytes!("../dll/x64/WebView2Loader.dll");
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open("./dist/WebView2Loader.dll")?;
+        file.write_all(dll)?;
+
+    } else if cfg!(target_arch = "aarch_64") {
+        let dll = include_bytes!("../dll/arm64/WebView2Loader.dll");
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open("./dist/WebView2Loader.dll")?;
+        file.write_all(dll)?;
+
+    } else {
+        panic!("Unsupported Arch: Your current cpu architecture is not supported.");
     }
     Ok(())
 }

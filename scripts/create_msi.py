@@ -39,14 +39,14 @@ class PackageGenerator:
         jsondata = json.load(open(jsonfile, "rb"))
         self.name = jsondata["name"]
         self.manufacturer = jsondata["manufacturer"]
-        self.version = "0.1.0"
-        self.comments = jsondata["comments"]
+        self.version = jsondata["version"]
+        self.comments = jsondata["description"]
         self.installdir = self.name
         self.license_file = jsondata["license_file"]
         self.product_name = self.name
         self.guid = "*"
         self.upgrade_guid = jsondata["upgrade_guid"]
-        self.basename = self.name.to_lowercase()
+        self.basename = self.name.lower()
         self.need_msvcrt = jsondata.get("need_msvcrt", False)
         self.addremove_icon = jsondata.get("addremove_icon", None)
         self.startmenu_shortcut = (
