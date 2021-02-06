@@ -135,9 +135,9 @@ pub fn build() -> Result<(), VeloxError> {
     }
 
     let cargo_process = if cfg!(target_os = "windows") {
-    process::Command::new("cmd")
-        .args(&["/C", "cargo build --release"])
-        .status()?
+        process::Command::new("cmd")
+            .args(&["/C", "cargo build --release"])
+            .status()?
     } else {
         process::Command::new("sh")
             .args(&["-c", "cargo build --release"])
@@ -148,7 +148,9 @@ pub fn build() -> Result<(), VeloxError> {
         run_cleanup(&config.build_dir)?;
         panic!("BundlerError: Failed to build binary.");
     } else {
-        move_artifacts(&config).unwrap();
+        if cfg!(target_os = "windows") {
+            move_artifacts(&config).unwrap();
+        }
         bundle_binary(&config).unwrap();
     }
 
@@ -157,7 +159,7 @@ pub fn build() -> Result<(), VeloxError> {
 
 fn bundle_binary(config: &config::VeloxConfig) -> Result<(), VeloxError> {
     if cfg!(target_os = "windows") {
-    // if true {
+        // if true {
         let script = include_str!("../scripts/create_msi.py");
         {
             let mut file = fs::OpenOptions::new()
@@ -185,7 +187,9 @@ fn bundle_binary(config: &config::VeloxConfig) -> Result<(), VeloxError> {
     } else {
         velox_bundler::bundle_binary().unwrap();
     }
-    run_cleanup("./create_msi.py")?;
+    if cfg!(target_os = "windows") {
+        run_cleanup("./create_msi.py")?;
+    }
     run_cleanup(&config.build_dir)?;
     Ok(())
 }
@@ -199,10 +203,12 @@ fn run_cleanup<T: std::convert::AsRef<std::path::Path>>(path: T) -> Result<(), V
     Ok(())
 }
 
-
 fn move_artifacts(config: &config::VeloxConfig) -> Result<(), VeloxError> {
     println!("moving artifacts");
-    fs::rename(format!("./target/release/{}.exe", config.name), format!("./dist/{}.exe", config.name))?;
+    fs::rename(
+        format!("./target/release/{}.exe", config.name),
+        format!("./dist/{}.exe", config.name),
+    )?;
     if cfg!(target_arch = "x86") {
         let dll = include_bytes!("../dll/x86/WebView2Loader.dll");
         let mut file = fs::OpenOptions::new()
@@ -210,8 +216,6 @@ fn move_artifacts(config: &config::VeloxConfig) -> Result<(), VeloxError> {
             .create_new(true)
             .open("./dist/WebView2Loader.dll")?;
         file.write_all(dll)?;
-
-
     } else if cfg!(target_arch = "x86_64") {
         let dll = include_bytes!("../dll/x64/WebView2Loader.dll");
         let mut file = fs::OpenOptions::new()
@@ -219,7 +223,6 @@ fn move_artifacts(config: &config::VeloxConfig) -> Result<(), VeloxError> {
             .create_new(true)
             .open("./dist/WebView2Loader.dll")?;
         file.write_all(dll)?;
-
     } else if cfg!(target_arch = "aarch_64") {
         let dll = include_bytes!("../dll/arm64/WebView2Loader.dll");
         let mut file = fs::OpenOptions::new()
@@ -227,7 +230,6 @@ fn move_artifacts(config: &config::VeloxConfig) -> Result<(), VeloxError> {
             .create_new(true)
             .open("./dist/WebView2Loader.dll")?;
         file.write_all(dll)?;
-
     } else {
         panic!("Unsupported Arch: Your current cpu architecture is not supported.");
     }
