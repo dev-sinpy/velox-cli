@@ -2,17 +2,21 @@ mod config;
 mod setup;
 mod subprocess;
 mod template;
+mod utils;
 
-// use confy::ConfyError;
+use crate::utils::*;
+
 use std::env::current_dir;
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{self, Stdio};
 
 use custom_error::custom_error;
 
-custom_error! {pub VeloxError
+pub type Result<T> = std::result::Result<T, Error>;
+
+custom_error! {pub Error
     // ConfigError{source: ConfyError} = "{source}",
     InstallationError{detail: String} = "{detail}",
     SetupError{detail: String} = "{detail}",
@@ -24,7 +28,7 @@ custom_error! {pub VeloxError
 }
 
 /// Creates a new velox project.
-pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
+pub fn create_new_project(name: &str) -> Result<()> {
     let current_dir = current_dir()?;
     let project_path = current_dir.join(name);
 
@@ -48,7 +52,7 @@ pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
         Ok(setup_config) => {
             // set velox-config file with user data
             config::set_config(
-                Path::new(&project_path.join("velox-config.json")),
+                Path::new(&project_path.join("velox.conf.json")),
                 &setup_config,
             )?;
 
@@ -56,7 +60,7 @@ pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
             if setup_config.install_dependencies {
                 // check if npm or yarn is installed in system
                 if !setup_config.package_manager.check_if_installed() {
-                    Err(VeloxError::DependencyError {
+                    Err(Error::DependencyError {
                         detail: String::from("Package manager is not Installed."),
                     })
                 } else {
@@ -70,19 +74,19 @@ pub fn create_new_project(name: &str) -> Result<(), VeloxError> {
                 Ok(())
             }
         }
-        Err(err) => Err(VeloxError::SetupError {
+        Err(err) => Err(Error::SetupError {
             detail: err.to_string(),
         }),
     }
 }
 
 // Run project in debug or release mode.
-pub fn run() -> Result<(), VeloxError> {
+pub fn run() -> Result<()> {
     let snowpack_command = match config::load_config()?.package_manager.as_str() {
         "npm" => "npm run dev",
         "yarn" => "yarn run dev",
         _ => {
-            return Err(VeloxError::SubProcessError {
+            return Err(Error::SubProcessError {
                 detail: "Invalid velox config".to_string(),
             })
         }
@@ -94,12 +98,12 @@ pub fn run() -> Result<(), VeloxError> {
         subprocess::exec(cargo_command, ".", Stdio::inherit(), Stdio::inherit());
 
     if let Err(err) = snowpack_process.wait() {
-        return Err(VeloxError::SubProcessError {
+        return Err(Error::SubProcessError {
             detail: err.to_string(),
         });
     }
     if let Err(err) = cargo_process.wait() {
-        return Err(VeloxError::SubProcessError {
+        return Err(Error::SubProcessError {
             detail: err.to_string(),
         });
     };
@@ -107,13 +111,13 @@ pub fn run() -> Result<(), VeloxError> {
     Ok(())
 }
 
-pub fn build() -> Result<(), VeloxError> {
+pub fn build() -> Result<()> {
     let config = config::load_config()?;
     let snowpack_command = match config.package_manager.as_str() {
         "npm" => "npm run build",
         "yarn" => "yarn run build",
         _ => {
-            return Err(VeloxError::SubProcessError {
+            return Err(Error::SubProcessError {
                 detail: "Invalid velox config".to_string(),
             })
         }
@@ -157,7 +161,7 @@ pub fn build() -> Result<(), VeloxError> {
     Ok(())
 }
 
-fn bundle_binary(config: &config::VeloxConfig) -> Result<(), VeloxError> {
+fn bundle_binary(config: &config::VeloxConfig) -> Result<()> {
     if cfg!(target_os = "windows") {
         // if true {
         let script = include_str!("../scripts/create_msi.py");
@@ -191,47 +195,5 @@ fn bundle_binary(config: &config::VeloxConfig) -> Result<(), VeloxError> {
         run_cleanup("./create_msi.py")?;
     }
     run_cleanup(&config.build_dir)?;
-    Ok(())
-}
-
-fn run_cleanup<T: std::convert::AsRef<std::path::Path>>(path: T) -> Result<(), VeloxError> {
-    if path.as_ref().is_dir() {
-        fs::remove_dir_all(path)?;
-    } else {
-        fs::remove_file(path)?;
-    }
-    Ok(())
-}
-
-fn move_artifacts(config: &config::VeloxConfig) -> Result<(), VeloxError> {
-    println!("moving artifacts");
-    fs::rename(
-        format!("./target/release/{}.exe", config.name),
-        format!("./dist/{}.exe", config.name),
-    )?;
-    if cfg!(target_arch = "x86") {
-        let dll = include_bytes!("../dll/x86/WebView2Loader.dll");
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open("./dist/WebView2Loader.dll")?;
-        file.write_all(dll)?;
-    } else if cfg!(target_arch = "x86_64") {
-        let dll = include_bytes!("../dll/x64/WebView2Loader.dll");
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open("./dist/WebView2Loader.dll")?;
-        file.write_all(dll)?;
-    } else if cfg!(target_arch = "aarch_64") {
-        let dll = include_bytes!("../dll/arm64/WebView2Loader.dll");
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open("./dist/WebView2Loader.dll")?;
-        file.write_all(dll)?;
-    } else {
-        panic!("Unsupported Arch: Your current cpu architecture is not supported.");
-    }
     Ok(())
 }

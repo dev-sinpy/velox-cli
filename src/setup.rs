@@ -1,8 +1,8 @@
 use crate::subprocess;
-use crate::VeloxError;
+use crate::{Error, Result};
 
 use dialoguer::console::{style, Style};
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{theme::ColorfulTheme, Input, Select};
 use std::path::Path;
 use std::process::Stdio;
 
@@ -31,7 +31,7 @@ impl PackageManager {
         }
     }
 
-    pub fn install_dependencies(&self, project_path: &Path) -> Result<(), VeloxError> {
+    pub fn install_dependencies(&self, project_path: &Path) -> Result<()> {
         let command = match self {
             PackageManager::Npm => "npm install".to_string(),
             PackageManager::Yarn => "yarn".to_string(),
@@ -42,7 +42,7 @@ impl PackageManager {
         match process.try_wait() {
             Ok(Some(status)) => {
                 if !status.success() {
-                    Err(VeloxError::InstallationError {
+                    Err(Error::InstallationError {
                         detail: format!(
                             "{}Failed to install dependencies, please try again later or install them manually.",
                             style("Error: ").red().bold()
@@ -57,7 +57,7 @@ impl PackageManager {
                 match process.wait() {
                     Ok(status) => {
                         if !status.success() {
-                            Err(VeloxError::InstallationError {
+                            Err(Error::InstallationError {
                                 detail: String::from(
                                     "Failed to install dependencies, please try again later or install them manually."
                                 ),
@@ -66,14 +66,14 @@ impl PackageManager {
                             Ok(())
                         }
                     }
-                    Err(_err) => Err(VeloxError::InstallationError {
+                    Err(_err) => Err(Error::InstallationError {
                         detail: String::from(
                             "Failed to install dependencies, please try again later or install them manually."
                         ),
                     }),
                 }
             }
-            Err(err) => Err(VeloxError::SubProcessError {
+            Err(err) => Err(Error::SubProcessError {
                 detail: err.to_string(),
             }),
         }
@@ -99,7 +99,7 @@ impl Default for SetupConfig {
     }
 }
 
-pub fn begin_setup(project_name: &str) -> Result<SetupConfig, VeloxError> {
+pub fn begin_setup(project_name: &str) -> Result<SetupConfig> {
     let theme = ColorfulTheme {
         values_style: Style::new().yellow().dim(),
         ..ColorfulTheme::default()
@@ -133,10 +133,12 @@ pub fn begin_setup(project_name: &str) -> Result<SetupConfig, VeloxError> {
         _ => PackageManager::Npm,
     };
 
-    let install_dependencies = Confirm::with_theme(&theme)
-        .with_prompt("Do you want to install dependencies now?")
-        .default(true)
-        .interact()?;
+    // let install_dependencies = Confirm::with_theme(&theme)
+    //     .with_prompt("Do you want to install dependencies now?")
+    //     .default(true)
+    //     .interact()?;
+
+    let install_dependencies = false;
 
     println!(
         "{:4}{:} ({})",

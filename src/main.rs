@@ -10,12 +10,12 @@ fn main() {
                 panic!("{}{}", style("Error: ").red().bold(), err.to_string())
             }
         }
-        ("dev", Some(sub_m)) => {
+        ("dev", Some(_sub_m)) => {
             if let Err(err) = velox::run() {
                 panic!("{}{}", style("Error: ").red().bold(), err.to_string())
             }
         }
-        ("build", Some(sub_m)) => {
+        ("build", Some(_sub_m)) => {
             if let Err(err) = velox::build() {
                 panic!("{}{}", style("Error: ").red().bold(), err.to_string())
             }

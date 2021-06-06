@@ -1,28 +1,29 @@
-use crate::VeloxError;
+use crate::Result;
 use include_dir::{include_dir, Dir};
 use std::fs;
 use std::io::prelude::*;
 use std::path::Path;
 
-pub fn create_template(path: &Path) -> Result<(), VeloxError> {
+pub fn create_template(path: &Path) -> Result<()> {
     // Create new folder with project name
     create_folder(path)?;
 
-    static PROJECT_DIR: Dir = include_dir!("velox-template/");
+    static PROJECT_DIR: Dir = include_dir!("template/");
     copy_files(&PROJECT_DIR, path)?;
     Ok(())
 }
 
-fn copy_files(dir: &Dir, path: &Path) -> Result<(), VeloxError> {
+fn copy_files(dir: &Dir, path: &Path) -> Result<()> {
     for file in dir.files() {
+        let file_path = path.join(file.path().file_name().unwrap());
+        println!("{:?}", file_path);
         let mut new_file = fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(path.join(file.path().file_name().unwrap()))
+            .open(file_path)
             .unwrap();
         let content = file.contents_utf8().unwrap().as_bytes();
         new_file.write_all(&content)?;
-        // println!("{}", file);
     }
 
     for folder in dir.dirs() {
@@ -33,7 +34,7 @@ fn copy_files(dir: &Dir, path: &Path) -> Result<(), VeloxError> {
     Ok(())
 }
 
-fn create_folder(path: &Path) -> Result<(), VeloxError> {
+fn create_folder(path: &Path) -> Result<()> {
     fs::DirBuilder::new().create(path)?;
     Ok(())
 }

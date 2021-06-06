@@ -1,5 +1,5 @@
 use crate::setup::{PackageManager, SetupConfig};
-use crate::VeloxError;
+use crate::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -30,14 +30,14 @@ impl std::default::Default for VeloxConfig {
     }
 }
 
-pub fn load_config() -> Result<VeloxConfig, VeloxError> {
+pub fn load_config() -> Result<VeloxConfig> {
     let config = fs::read_to_string("velox.conf.json")?;
     let config_json: VeloxConfig = serde_json::from_str(&config)?;
 
     Ok(config_json)
 }
 
-pub fn set_config(config_path: &Path, config: &SetupConfig) -> Result<(), VeloxError> {
+pub fn set_config(config_path: &Path, config: &SetupConfig) -> Result<()> {
     use std::io::Write;
 
     let file_content = fs::read_to_string(config_path).unwrap();
