@@ -1,0 +1,33 @@
+{
+    "name": "{{app_name}}",
+
+    "description": "{{app_description}}",
+
+    "debug": true,
+
+    "permissions": [
+        "filesystem",
+        "notification",
+        "process"
+    ],
+
+    "dev_server_url": "http://localhost:8889",
+
+    "package_manager": "{{package_manager}}",
+
+    "build_dir": "dist",
+
+    "upgrade_guid": "2306069D-456E-4CA5-AA18-94805C18C5DF",
+    "version": "1.0.0",
+    "manufacturer": "velox",
+    "license_file": "./License.rtf",
+    "parts": [
+    {
+        "id": "MainProgram",
+        "title": "Main",
+        "description": "The main target",
+        "absent": "disallow",
+        "staged_dir": "dist"
+    }]
+
+}

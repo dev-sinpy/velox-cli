@@ -52,7 +52,7 @@ pub fn set_config(config_path: &Path, config: &SetupConfig) -> Result<()> {
         PackageManager::Yarn => "yarn",
     };
     let updated_content = file_content
-        .replace("{{app_title}}", &config.title)
+        .replace("{{app_name}}", &config.title)
         .replace("{{app_description}}", &config.description)
         .replace("{{package_manager}}", package_manager);
 
